@@ -1,27 +1,52 @@
 <p id="notice"><%= notice %></p>
-
 <h1>Your Nearby Buses</h1>
-
-<h3 class="text_muted">Your current location</h3>
-<p class="text_muted">
-  <%= @location.full_street_address %> <%= link_to fa_icon('pencil', text: 'Edit'),
-  edit_location_path(@location) %>/small>
+<h3 class="text-muted">Your current location</h3>
+<p class="text-muted">
+  <%= @location.full_street_address %> <small><%= link_to fa_icon('pencil', text: 'Edit'), edit_location_path(@location) %></small>
 </p>
+<div id="map-canvas"></div>
+<!-- List all the buses -->
 <h3>The closest buses are...</h3>
-
-<%= @buses.each do |bus| %>
-<p>
-  <strong>Route: </strong><%= bus('ROUTE') %> <%= bus('DIRECTION') %>
-  <br>
-  <strong>Bus Number: </strong><%= bus('VEHICLE') %>
-  <br>
-  <strong>Next Stop: </strong><%= bus('TIMEPOINT') %>
-</p>
+<% @buses.each do |bus| %>
+  <div class="well">
+    <strong>Route: </strong><%= bus['ROUTE'] %> <%= bus['DIRECTION'] %>
+    <br>
+    <strong>Bus Number: </strong> <%= bus['VEHICLE'] %>
+    <br>
+    <strong>Next Stop: </strong> <%= bus['TIMEPOINT'] %>
+  </div>
 <% end %>
-
-<%= if @buses.empty? %>
-  <p> Not close. Time to uber, hitchhike, walk or <%=
-  link_to 'edit your location', edit_location_path(@location) %>
-</p>
+<% if @buses.empty? %>
+  <p>
+    Not really that close. Time to walk, bike, taxi, Uber, frolic or <%= link_to 'edit your location', edit_location_path(@location) %>
+  </p>
 <% end %>
-<%= link_to 'Edit', edit_location_path(@location) %> |
+<%= link_to 'Edit', edit_location_path(@location) %>
+<script src="https://maps.googleapis.com/maps/api/js?key=<%= ENV['google_maps_api_key'] %>"></script>
+<script>
+  function initialize() {
+    var myLocation = new google.maps.LatLng(<%= @location.latitude %>, <%= @location.longitude %>)
+    var mapOptions = {
+      center: myLocation,
+      zoom: 15
+    };
+    var map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+    var myMarker = new google.maps.Marker({
+      position: myLocation,
+      map: map,
+      animation: google.maps.Animation.DROP,
+      title: 'My Location'
+    });
+    var nearbyBuses = <%= raw @buses.to_json %>;
+    nearbyBuses.forEach(function(bus) {
+      var busLocation = new google.maps.LatLng(bus['LATITUDE'], bus['LONGITUDE']);
+      var busMarker = new google.maps.Marker({
+        position: busLocation,
+        map: map,
+        animation: google.maps.Animation.DROP,
+        title: bus['VEHICLE']
+      });
+    });
+  }
+  google.maps.event.addDomListener(window, 'load', initialize);
+</script>
